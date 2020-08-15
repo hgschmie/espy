@@ -11,21 +11,22 @@
 
 
 EspyHardware::EspyHardware()
-        : display_address(0xff), pcf_address(0xff), error(HW_NO_ERROR), pcf(nullptr) {
+        : display_address(0xff), pcf_address(0xff), error(HW_NO_ERROR), pcf(nullptr), display(nullptr) {
 
     _init_i2c_bus();
 
     if (pcf_address == 0xff) {
         error = HW_NO_PCF_FOUND;
-        Serial.println("NO PCF FOUND!");
     } else if (display_address == 0xff) {
         error = HW_NO_DISPLAY_FOUND;
-        Serial.println("NO DISPLAY FOUND!");
     }
 }
 
 void EspyHardware::init_display() {
-
+    display = new LiquidCrystal_I2C(display_address, 20, 2);
+    display->init();
+    display->clear();
+    display->backlight();
 }
 
 void EspyHardware::init_pcf() {
@@ -39,6 +40,14 @@ void EspyHardware::leds(uint8_t led_value) const {
     }
 }
 
+void EspyHardware::text(String text[2]) const {
+    if (display != nullptr) {
+        display->setCursor(0, 0);
+        display->print(text[0]);
+        display->setCursor(0, 1);
+        display->print(text[1]);
+    }
+}
 
 void EspyHardware::_init_i2c_bus() {
     uint8_t i2c_address[MAX_I2C_DEV_DETECTED];

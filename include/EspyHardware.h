@@ -7,6 +7,7 @@
 
 #include <Arduino.h>
 #include <PCF8574.h>
+#include <LiquidCrystal_I2C.h>
 
 #define HW_NO_ERROR 0
 #define HW_NO_DISPLAY_FOUND -1
@@ -49,11 +50,14 @@ public:
 
     uint8_t display_address = 0xffu;
     uint8_t pcf_address = 0xffu;
-    uint8_t error = HW_NO_ERROR;
+    int error = HW_NO_ERROR;
 
     PCF8574 *pcf;
+    LiquidCrystal_I2C *display;
 
     void leds(uint8_t led_value) const;
+
+    void text(String text[2]) const;
 
 
 private:

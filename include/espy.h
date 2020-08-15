@@ -1,4 +1,5 @@
-/*
+/* -*- mode: C++; -*-
+ *
  * Main include file for all espy code.
  */
 
@@ -6,6 +7,7 @@
 #define ESPY_H
 
 #include <EspyHardware.h>
+#include <EspyBlinker.h>
 #include <EspyDisplay.h>
 
 // espy hardware
