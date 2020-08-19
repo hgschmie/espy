@@ -2,8 +2,11 @@
  *
  * A simple blink structure.
  */
-#ifndef ESPY_ESPYBLINKER_H
-#define ESPY_ESPYBLINKER_H
+
+#ifndef _ESPY_ESPYBLINKER_H_
+#define _ESPY_ESPYBLINKER_H_
+
+#include <espy.h>
 
 class EspyBlinker {
  public:

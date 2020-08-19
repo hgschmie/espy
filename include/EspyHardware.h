@@ -2,13 +2,26 @@
  * espy hardware detection and management.
  */
 
-#ifndef ESPY_ESPYHARDWARE_H
-#define ESPY_ESPYHARDWARE_H
-
-#include <Arduino.h>
+#include <Wire.h>
 #include <PCF8574.h>
 #include <LiquidCrystal_I2C.h>
 
+#include <espy.h>
+
+#ifndef _ESPY_ESPYHARDWARE_H_
+#define _ESPY_ESPYHARDWARE_H_
+
+// espy hardware
+
+// GPIO Pins for I2C Bus
+#define I2C_SDA 0
+#define I2C_SCL 2
+
+// display size
+#define DISPLAY_ROWS 2
+#define DISPLAY_COLS 16
+
+// error codes
 #define HW_NO_ERROR 0
 #define HW_NO_DISPLAY_FOUND -1
 #define HW_NO_PCF_FOUND -2
@@ -17,15 +30,8 @@
 #define BUTTON_IO_1 0x40u
 #define BUTTON_IO_2 0x80u
 
-#define BUTTON_SHIFT ((uint8_t)5)
+#define BUTTON_SHIFT 5u
 #define BUTTON_IO_MASK (BUTTON_IO_0 | BUTTON_IO_1 | BUTTON_IO_2)
-
-// inline macro to read state of the buttons
-#define READ_BUTTONS(PCF_CHIP) ((~(PCF_CHIP->readButton8(_BUTTON_IO_MASK)) & _BUTTON_IO_MASK) >> _BUTTON_SHIFT)
-
-#define BUTTON_0 1u
-#define BUTTON_1 2u
-#define BUTTON_2 4u
 
 #define LED_IO_0 0x01u
 #define LED_IO_1 0x02u
@@ -34,12 +40,6 @@
 #define LED_IO_4 0x10u
 
 #define LED_IO_MASK (LED_IO_0 | LED_IO_1 | LED_IO_2 | LED_IO_3 | LED_IO_4 )
-
-#define LED_0 0x00u
-#define LED_1 0x01u
-#define LED_2 0x02u
-#define LED_3 0x03u
-#define LED_4 0x04u
 
 /*
  * Contains all the hardware information.
@@ -57,8 +57,9 @@ public:
 
     void leds(uint8_t led_value) const;
 
-    void text(String text[2]) const;
+    void text(const char *text[DISPLAY_ROWS]) const;
 
+    uint8_t keys() const;
 
 private:
     void _init_i2c_bus();
@@ -70,4 +71,5 @@ private:
 };
 
 
-#endif //ESPY_ESPYHARDWARE_H
+#endif
+

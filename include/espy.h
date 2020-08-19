@@ -3,17 +3,23 @@
  * Main include file for all espy code.
  */
 
-#ifndef ESPY_H
-#define ESPY_H
+#ifndef _ESPY_H_
+#define _ESPY_H_
 
 #include <EspyHardware.h>
 #include <EspyBlinker.h>
 #include <EspyDisplay.h>
+#include <EspyKeys.h>
+#include <menu.h>
 
-// espy hardware
+// run selfcheck on the system
+// only enable active tasks if everything is ok
+boolean self_check(EspyDisplayBuffer *);
 
-// GPIO Pins for I2C Bus
-#define I2C_SDA 0
-#define I2C_SCL 2
+// display refresh task
+void display_task();
 
-#endif
+// keyboard scan task
+void keyboard_task();
+
+#endif // _ESPY_H_

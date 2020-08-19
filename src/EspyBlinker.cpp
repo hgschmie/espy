@@ -5,10 +5,7 @@
 #include <espy.h>
 
 EspyBlinker::EspyBlinker(int initial_in_ticks)
-  : initial(initial_in_ticks)
-  , counter(initial_in_ticks)
-  , state(false)
-{}
+        : state(false), initial(initial_in_ticks), counter(initial_in_ticks) {}
 
 void EspyBlinker::blink() {
     if (--counter <= 0) {

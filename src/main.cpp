@@ -8,26 +8,22 @@
  * loop is the main loop.
  */
 
-#include <Arduino.h>
-#include <espy.h>
 
+#include <Arduino.h>
 #include <TaskScheduler.h>
-#include "../.pio/libdeps/esp01_1m/TaskScheduler/src/TaskSchedulerDeclarations.h"
+
+#include <espy.h>
 
 EspyHardware *hardware;
 EspyDisplay *display;
+EspyKeys *keys;
 
 Scheduler scheduler;
 
-boolean self_check();
-
-void display_task();
-void led_task();
-void lcd_task();
-
+// scheduler tasks
 Task displayTask(20, TASK_FOREVER, &display_task);
-
-Task lcdTask(1000, TASK_FOREVER, &lcd_task);
+Task keyboardTask(KEY_TIMER_MS, TASK_FOREVER, &keyboard_task);
+Task menuTask(100, TASK_FOREVER, &menu_task);
 
 EspyDisplayBuffer buf;
 
@@ -35,39 +31,53 @@ EspyDisplayBuffer buf;
  * Run all the setup code before the main loop hits.
  */
 void setup() {
+#ifdef _ESPY_DEBUG
     Serial.begin(9600);
     Serial.println("Setup starting");
+#endif
 
     // bring up display and led hardware
     hardware = new EspyHardware();
     display = new EspyDisplay(*hardware);
+    keys = new EspyKeys(*hardware);
 
+    // point display at the current buf
     display->display(&buf);
 
+    // bring up the scheduler
     scheduler.init();
 
     // start the background display refresh task
     scheduler.addTask(displayTask);
-    scheduler.addTask(lcdTask);
-//    scheduler.addTask(ledTask);
-
     displayTask.enable();
 
-    // Enable all other tasks only if the hardware is ok.
-    if (self_check()) {
-        lcdTask.enable();
-    }
+    scheduler.addTask(keyboardTask);
+    keyboardTask.enable();
 
-    buf.leds[1] = led_state::ON;
-    buf.leds[2] = led_state::SLOW;
-    buf.leds[3] = led_state::FAST;
+    scheduler.addTask(menuTask);
+
+    // bring up the system tasks
+
+    // Enable all other tasks only if the hardware is ok.
+    if (self_check(&buf)) {
+        // enable other tasks here
+
+        EspyDisplayBuffer *menu_buffer = menu_setup(keys);
+        menuTask.enable();
+
+        menu_buffer->lcd_print_P(0, PSTR("Hello"));
+        menu_buffer->lcd_print_P(1, PSTR("World"));
+
+        menu_buffer->leds[0] = led_state::FAST;
+        display->display(menu_buffer);
+    }
 }
 
-boolean self_check() {
+boolean self_check(EspyDisplayBuffer *sc_buf) {
     if (hardware->error == HW_NO_DISPLAY_FOUND) {
-        buf.leds[0] = led_state::FAST;
+        sc_buf->leds[0] = led_state::FAST;
     } else if (hardware->error == HW_NO_PCF_FOUND) {
-        buf.leds[0] = led_state::SLOW; // actually pointless. :-)
+        sc_buf->lcd_print_P(0, PSTR("NO PCF CHIP FOUND!"));
     }
 
     return hardware->error == HW_NO_ERROR; // true if all is fine
@@ -76,19 +86,14 @@ boolean self_check() {
 
 void display_task() {
     display->refresh();
-    Serial.print(".");
 }
 
-uint8_t count = 0;
-boolean up = true;
-
-void lcd_task() {
-    buf.text[0] = String("This is a testy ");
-    lcdTask.disable();
+void keyboard_task() {
+    keys->scan();
 }
 
 void loop() {
-    for (;;) {
-        scheduler.execute();
-    }
+    scheduler.execute();
 }
+
+

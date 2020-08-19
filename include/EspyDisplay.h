@@ -1,8 +1,12 @@
 /*
  * All things related to the display logic (both leds and lcd)
  */
-#ifndef ESPY_ESPYDISPLAY_H
-#define ESPY_ESPYDISPLAY_H
+
+#include <Arduino.h>
+#include <TaskSchedulerDeclarations.h>
+
+#ifndef _ESPY_ESPYDISPLAY_H_
+#define _ESPY_ESPYDISPLAY_H_
 
 #include <espy.h>
 
@@ -14,13 +18,31 @@ enum led_state {
     FAST
 };
 
+#define LED_TOGGLE(x, n) x.leds[n] =  (x.leds[n] == led_state::ON) ? led_state::OFF : led_state::ON
+
 #define REFRESH_RATE (1000 / 50)
 #define BLINK_SLOW (560 / REFRESH_RATE) // 2 second blink
 #define BLINK_FAST (100 / REFRESH_RATE)  // 0.5 second blink
 
-struct EspyDisplayBuffer {
-    String text[2] = {"", ""};
+class EspyDisplay;
+
+class EspyDisplayBuffer {
+    friend class EspyDisplay;
+
+public:
+    char text[DISPLAY_ROWS][DISPLAY_COLS];
     led_state leds[5] = {OFF, OFF, OFF, OFF, OFF};
+
+    void clear();
+
+    void lcd_print(int row, const char *fmt ...);
+
+    void lcd_print_P(int row, const char *fmt ...);
+
+private:
+    bool render_and_reset();
+
+    bool render = false;
 };
 
 /*

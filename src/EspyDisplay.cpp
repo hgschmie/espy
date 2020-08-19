@@ -3,19 +3,56 @@
  */
 
 #include <espy.h>
-#include <EspyDisplay.h>
 
+void EspyDisplayBuffer::clear() {
+    for (int i = 0; i < DISPLAY_ROWS; i++) {
+        text[i][0] = '\0';
+    }
+
+    render = true;
+}
+
+void EspyDisplayBuffer::lcd_print(int row, const char *fmt ...) {
+    va_list argp;
+    va_start(argp, fmt);
+    vsnprintf(text[row], DISPLAY_COLS, fmt, argp);
+    va_end(argp);
+
+    render = true;
+}
+
+void EspyDisplayBuffer::lcd_print_P(int row, const char *fmt ...) {
+    va_list argp;
+    va_start(argp, fmt);
+    vsnprintf_P(text[row], DISPLAY_COLS, fmt, argp);
+    va_end(argp);
+
+    render = true;
+}
+
+bool EspyDisplayBuffer::render_and_reset() {
+    bool res = render;
+    render = false;
+    return res;
+}
 
 EspyDisplay::EspyDisplay(EspyHardware &_hardware)
-        : current(nullptr), hardware(_hardware), led(0x00u),
-        fast(EspyBlinker(BLINK_FAST)), slow(EspyBlinker(BLINK_SLOW)) {
+        : hardware(_hardware), current(nullptr), led(0x00u),
+          fast(EspyBlinker(BLINK_FAST)), slow(EspyBlinker(BLINK_SLOW)) {
 }
 
 void EspyDisplay::refresh() {
     if (current != nullptr) {
         compute_led_state();
         hardware.leds(led);
-        hardware.text(current->text);
+
+        if (current->render_and_reset()) {
+            const char *buf[DISPLAY_ROWS];
+            for (int i = 0; i < DISPLAY_ROWS; i++) {
+                buf[i] = (char *) current->text[i];
+            }
+            hardware.text(buf);
+        }
     }
 }
 

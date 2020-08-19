@@ -3,9 +3,7 @@
 //
 
 #include <espy.h>
-#include <EspyHardware.h>
 
-#include <Wire.h>
 
 #define MAX_I2C_DEV_DETECTED 8
 
@@ -23,10 +21,11 @@ EspyHardware::EspyHardware()
 }
 
 void EspyHardware::init_display() {
-    display = new LiquidCrystal_I2C(display_address, 20, 2);
+    display = new LiquidCrystal_I2C(display_address, DISPLAY_COLS, DISPLAY_ROWS);
     display->init();
     display->clear();
     display->backlight();
+    display->cursor_off();
 }
 
 void EspyHardware::init_pcf() {
@@ -40,12 +39,21 @@ void EspyHardware::leds(uint8_t led_value) const {
     }
 }
 
-void EspyHardware::text(String text[2]) const {
+uint8_t EspyHardware::keys() const {
+    if (pcf != nullptr) {
+        return ((~pcf->readButton8(BUTTON_IO_MASK)) & BUTTON_IO_MASK) >> BUTTON_SHIFT;
+    } else {
+        return 0;
+    }
+}
+
+void EspyHardware::text(const char *text[DISPLAY_ROWS]) const {
     if (display != nullptr) {
-        display->setCursor(0, 0);
-        display->print(text[0]);
-        display->setCursor(0, 1);
-        display->print(text[1]);
+        display->clear();
+        for (int i = 0; i < DISPLAY_ROWS; i++) {
+            display->setCursor(0, i);
+            display->print(text[i]);
+        }
     }
 }
 
