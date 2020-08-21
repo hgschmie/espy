@@ -9,24 +9,34 @@ EspyDisplayBuffer menu_buffer;
 
 // housekeeping functions
 void lcdml_menu_display();
+
 void lcdml_menu_clear();
 
 // internal stuff
 void lcdml_menu_back(uint8_t);
+
 void lcdml_screensaver(uint8_t);
+
+bool always_false() {
+    return false;
+}
 
 LCDMenuLib2_menu LCDML_0(255, 0, 0, nullptr, nullptr); // root menu element (do not change)
 // no menuControl callback, as the buttons are actively managed by the EspyKey controller.
 LCDMenuLib2 LCDML(LCDML_0, DISPLAY_ROWS, DISPLAY_COLS, lcdml_menu_display, lcdml_menu_clear, nullptr);
 // LCDML_add(id, prev_layer, new_num, lang_char_array, callback_function)
-LCDML_add         (0, LCDML_0, 1, "Status", nullptr);
-LCDML_add         (1, LCDML_0_1, 1, "* WiFi", nullptr);                    // NULL = no menu function
-LCDML_add         (2, LCDML_0_1, 2, "* MQTT", nullptr);                    // NULL = no menu function
+LCDML_add         (0, LCDML_0,   1, "Status", nullptr);
+LCDML_add         (1, LCDML_0_1, 1, "WiFi", nullptr);
+LCDML_add         (2, LCDML_0_1, 2, "MQTT", nullptr);
 LCDML_add         (3, LCDML_0_1, 3, "< Back", lcdml_menu_back);
-LCDML_add         (4, LCDML_0, 2, "Settings", nullptr);
+LCDML_add         (4, LCDML_0,   2, "Settings", nullptr);
+LCDML_add         (5, LCDML_0_2, 1, "Configure Wifi", wifi_setup_activate);
+LCDML_add         (6, LCDML_0_2, 2, "< Back", lcdml_menu_back);
+LCDML_addAdvanced (7, LCDML_0,   7, always_false, "screensaver", lcdml_screensaver, 0, _LCDML_TYPE_default);
+
 // menu element count - last element id
 // this value must be the same as the last menu element
-#define _LCDML_DISP_cnt    4
+#define _LCDML_DISP_cnt    7
 
 // create menu
 LCDML_createMenu(_LCDML_DISP_cnt);
@@ -69,7 +79,7 @@ EspyDisplayBuffer *menu_setup(EspyKeys *keys) {
     LCDML.MENU_enRollover();
 
     // Enable Screensaver (screensaver menu function, time to activate in ms)
-    LCDML.SCREEN_enable(lcdml_screensaver, 60000);
+    LCDML.SCREEN_enable(lcdml_screensaver, 30000ul);
 
     keys->keys[0].on_release = func_up;
     keys->keys[0].on_long_press = func_left;
@@ -149,13 +159,16 @@ void lcdml_menu_display() {
     }
 }
 
+uint8_t sb_col = 0;
+uint8_t sb_row = 0;
+uint8_t count = 0;
+
 void lcdml_screensaver(uint8_t param) {
     if (LCDML.FUNC_setup()) {
-        // remmove compiler warnings when the param variable is not used:
-        LCDML_UNUSED(param);
+        menu_buffer.clear();
+        menu_buffer.text[0][0] = '.';
+        menu_buffer.request_render();
 
-        // update LCD content
-        menu_buffer.lcd_print_P(0, PSTR("press any key"));
         LCDML.FUNC_setLoopInterval(100);
     }
 
@@ -163,10 +176,22 @@ void lcdml_screensaver(uint8_t param) {
         if (LCDML.BT_checkAny()) {
             LCDML.FUNC_goBackToMenu();
         }
+
+        if (++count == 10) {
+            count = 0;
+            menu_buffer.text[sb_row][sb_col] = ' ';
+            sb_row++;
+            if (sb_row == DISPLAY_ROWS) sb_row = 0;
+            sb_col++;
+            if (sb_col == DISPLAY_COLS) sb_col = 0;
+            menu_buffer.text[sb_row][sb_col] = '.';
+            menu_buffer.request_render();
+        }
     }
 
     if (LCDML.FUNC_close()) {
         // The screensaver goes to the root menu
+        menu_buffer.clear();
         LCDML.MENU_goRoot();
     }
 }
@@ -174,8 +199,6 @@ void lcdml_screensaver(uint8_t param) {
 
 void lcdml_menu_back(uint8_t param) {
     if (LCDML.FUNC_setup()) {
-        // remmove compiler warnings when the param variable is not used:
-        LCDML_UNUSED(param);
         // end function and go an layer back
         LCDML.FUNC_goBackToMenu(1);      // leave this function and go a layer back
     }

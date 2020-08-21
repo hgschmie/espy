@@ -10,7 +10,6 @@
 
 
 #include <Arduino.h>
-#include <TaskScheduler.h>
 
 #include <espy.h>
 
@@ -62,14 +61,14 @@ void setup() {
     if (self_check(&buf)) {
         // enable other tasks here
 
-        EspyDisplayBuffer *menu_buffer = menu_setup(keys);
+        menu_setup(keys);
         menuTask.enable();
 
-        menu_buffer->lcd_print_P(0, PSTR("Hello"));
-        menu_buffer->lcd_print_P(1, PSTR("World"));
+        dns_setup(scheduler);
+        portal_setup(scheduler);
 
-        menu_buffer->leds[0] = led_state::FAST;
-        display->display(menu_buffer);
+        menu_buffer.leds[0] = led_state::FAST;
+        display->display(&menu_buffer);
     }
 }
 

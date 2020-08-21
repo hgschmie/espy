@@ -4,7 +4,6 @@
  */
 
 #include <Arduino.h>
-#include <TaskSchedulerDeclarations.h>
 
 #ifndef _ESPY_ESPYKEYS_H_
 #define _ESPY_ESPYKEYS_H_

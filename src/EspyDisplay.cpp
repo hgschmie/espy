@@ -4,12 +4,17 @@
 
 #include <espy.h>
 
+EspyDisplayBuffer::EspyDisplayBuffer() {
+    clear();
+};
+
 void EspyDisplayBuffer::clear() {
     for (int i = 0; i < DISPLAY_ROWS; i++) {
-        text[i][0] = '\0';
+        memset(text[i], DISPLAY_COLS, ' ');
+        text[i][DISPLAY_COLS] = '\0';
     }
 
-    render = true;
+    request_render();
 }
 
 void EspyDisplayBuffer::lcd_print(int row, const char *fmt ...) {
@@ -18,7 +23,7 @@ void EspyDisplayBuffer::lcd_print(int row, const char *fmt ...) {
     vsnprintf(text[row], DISPLAY_COLS, fmt, argp);
     va_end(argp);
 
-    render = true;
+    request_render();
 }
 
 void EspyDisplayBuffer::lcd_print_P(int row, const char *fmt ...) {
@@ -27,6 +32,10 @@ void EspyDisplayBuffer::lcd_print_P(int row, const char *fmt ...) {
     vsnprintf_P(text[row], DISPLAY_COLS, fmt, argp);
     va_end(argp);
 
+    request_render();
+}
+
+void EspyDisplayBuffer::request_render() {
     render = true;
 }
 
@@ -80,4 +89,7 @@ void EspyDisplay::compute_led_state() {
 
 void EspyDisplay::display(EspyDisplayBuffer *buf) {
     current = buf;
+    if (current != nullptr) {
+        current->request_render();
+    }
 }

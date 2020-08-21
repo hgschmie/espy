@@ -30,7 +30,9 @@ class EspyDisplayBuffer {
     friend class EspyDisplay;
 
 public:
-    char text[DISPLAY_ROWS][DISPLAY_COLS];
+    EspyDisplayBuffer();
+
+    char text[DISPLAY_ROWS][DISPLAY_COLS + 1]{};
     led_state leds[5] = {OFF, OFF, OFF, OFF, OFF};
 
     void clear();
@@ -38,6 +40,8 @@ public:
     void lcd_print(int row, const char *fmt ...);
 
     void lcd_print_P(int row, const char *fmt ...);
+
+    void request_render();
 
 private:
     bool render_and_reset();
