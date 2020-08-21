@@ -61,10 +61,9 @@ public:
     void display(EspyDisplayBuffer *buf);
 
     EspyDisplayBuffer *current;     // Current display buffer. Will be rendered at refresh
-
+    uint8_t led;                    // Current LED state.
 private:
     EspyHardware &hardware;         // Reference to the detected hardware
-    uint8_t led;                    // Current LED state.
     EspyBlinker fast;
     EspyBlinker slow;
 
