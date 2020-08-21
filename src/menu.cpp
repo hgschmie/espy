@@ -3,6 +3,7 @@
  * Menu code
  */
 
+#include <ESP8266WiFi.h>
 #include <espy.h>
 
 EspyDisplayBuffer menu_buffer;
@@ -21,22 +22,57 @@ bool always_false() {
     return false;
 }
 
+void settings_wifi(uint8_t line) {
+    menu_buffer.lcd_print_P(line, PSTR(" Wifi: %s"), WiFi.SSID().c_str());
+}
+
+void settings_ip(uint8_t line) {
+    menu_buffer.lcd_print_P(line, PSTR(" %s"), WiFi.localIP().toString().c_str());
+}
+
+void settings_gw(uint8_t line) {
+    menu_buffer.lcd_print_P(line, PSTR(" %s"), WiFi.gatewayIP().toString().c_str());
+}
+
+void settings_dns(uint8_t line) {
+    menu_buffer.lcd_print_P(line, PSTR(" %s"), WiFi.dnsIP().toString().c_str());
+}
+
+void settings_host(uint8_t line) {
+    menu_buffer.lcd_print_P(line, PSTR(" %s"), WiFi.hostname().c_str());
+}
+
+void settings_retry(uint8_t line) {
+    if (wifiManager != nullptr) {
+        menu_buffer.lcd_print_P(line, PSTR(" Retry: %d"), wifiManager->retry);
+    } else {
+        menu_buffer.lcd_print_P(line, PSTR(" Retry unknown"));
+    }
+}
+
 LCDMenuLib2_menu LCDML_0(255, 0, 0, nullptr, nullptr); // root menu element (do not change)
 // no menuControl callback, as the buttons are actively managed by the EspyKey controller.
 LCDMenuLib2 LCDML(LCDML_0, DISPLAY_ROWS, DISPLAY_COLS, lcdml_menu_display, lcdml_menu_clear, nullptr);
 // LCDML_add(id, prev_layer, new_num, lang_char_array, callback_function)
-LCDML_add         (0, LCDML_0,   1, "Status", nullptr);
-LCDML_add         (1, LCDML_0_1, 1, "WiFi", nullptr);
-LCDML_add         (2, LCDML_0_1, 2, "MQTT", nullptr);
-LCDML_add         (3, LCDML_0_1, 3, "< Back", lcdml_menu_back);
-LCDML_add         (4, LCDML_0,   2, "Settings", nullptr);
-LCDML_add         (5, LCDML_0_2, 1, "Configure Wifi", wifi_setup_activate);
-LCDML_add         (6, LCDML_0_2, 2, "< Back", lcdml_menu_back);
-LCDML_addAdvanced (7, LCDML_0,   7, always_false, "screensaver", lcdml_screensaver, 0, _LCDML_TYPE_default);
+LCDML_add         (0, LCDML_0,     1, "Status", nullptr);
+LCDML_add         (1, LCDML_0_1,   1, "WiFi", nullptr);
+LCDML_addAdvanced (2, LCDML_0_1_1, 1, NULL, "", settings_wifi, 0, _LCDML_TYPE_dynParam);
+LCDML_addAdvanced (3, LCDML_0_1_1, 2, NULL, "", settings_retry, 0, _LCDML_TYPE_dynParam);
+LCDML_addAdvanced (4, LCDML_0_1_1, 3, NULL, "", settings_ip, 0, _LCDML_TYPE_dynParam);
+LCDML_addAdvanced (5, LCDML_0_1_1, 4, NULL, "", settings_gw, 0, _LCDML_TYPE_dynParam);
+LCDML_addAdvanced (6, LCDML_0_1_1, 5, NULL, "", settings_dns, 0, _LCDML_TYPE_dynParam);
+LCDML_addAdvanced (7, LCDML_0_1_1, 6, NULL, "", settings_host, 0, _LCDML_TYPE_dynParam);
+LCDML_add         (8, LCDML_0_1_1, 7, "< Back", lcdml_menu_back);
+LCDML_add         (9, LCDML_0_1,   2, "MQTT", nullptr);
+LCDML_add         (10, LCDML_0_1,   3, "< Back", lcdml_menu_back);
+LCDML_add         (11, LCDML_0,     2, "Settings", nullptr);
+LCDML_add         (12, LCDML_0_2,   1, "Configure Wifi", wifi_setup_activate);
+LCDML_add         (13, LCDML_0_2,   2, "< Back", lcdml_menu_back);
+LCDML_addAdvanced (14, LCDML_0,     3, always_false, "screensaver", lcdml_screensaver, 0, _LCDML_TYPE_default);
 
 // menu element count - last element id
 // this value must be the same as the last menu element
-#define _LCDML_DISP_cnt    7
+#define _LCDML_DISP_cnt    14
 
 // create menu
 LCDML_createMenu(_LCDML_DISP_cnt);

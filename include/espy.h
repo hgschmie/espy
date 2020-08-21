@@ -13,6 +13,7 @@
 #include <EspyDisplay.h>
 #include <EspyKeys.h>
 #include <menu.h>
+#include <CustomWifiManager.h>
 
 // run selfcheck on the system
 // only enable active tasks if everything is ok
@@ -35,15 +36,17 @@ void dns_disable();
 void dns_setup(Scheduler &scheduler);
 
 // config portal
-void portal_setup(Scheduler &scheduler);
+void wifi_setup(Scheduler &scheduler);
 
-void wifi_scan_enable();
+void wifi_config_mode();
 
-void wifi_scan_disable();
+void wifi_connect_mode();
 
 extern EspyDisplayBuffer menu_buffer;
 
 extern EspyDisplay *display;
 extern LCDMenuLib2 LCDML;
+
+extern CustomWiFiManager *wifiManager;
 
 #endif // _ESPY_H_

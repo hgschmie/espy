@@ -11,8 +11,8 @@
    Licensed under MIT license
  **************************************************************/
 
-#ifndef ESPAsyncWiFiManager_h
-#define ESPAsyncWiFiManager_h
+#ifndef _CUSTOM_WIFI_MANAGER_H_
+#define _CUSTOM_WIFI_MANAGER_H_
 
 #if defined(ESP8266)
 
@@ -50,21 +50,22 @@ const char HTTP_HEAD_END[] PROGMEM = R"(</head><body><div style='text-align:left
 const char HTTP_PORTAL_OPTIONS[] PROGMEM = R"(<form action="/wifi" method="get"><button>Configure WiFi</button></form><br/><form action="/0wifi" method="get"><button>Configure WiFi (No Scan)</button></form><br/><form action="/i" method="get"><button>Info</button></form><br/><form action="/r" method="post"><button>Reset</button></form>)";
 const char HTTP_ITEM[] PROGMEM = R"(<div><a href='#p' onclick='c(this)'>{v}</a>&nbsp;<span class='q {i}'>{r}%</span></div>)";
 const char HTTP_FORM_START[] PROGMEM = R"(<form method='get' action='wifisave'><input id='s' name='s' length=32 placeholder='SSID'><br/><input id='p' name='p' length=64 type='password' placeholder='password'><br/>)";
-const char HTTP_FORM_PARAM[] PROGMEM = R"("<br/><input id='{i}' name='{n}' length={l} placeholder='{p}' value='{v}' {c}>)";
-const char HTTP_FORM_END[] PROGMEM = R"("<br/><button type='submit'>save</button></form>)";
-const char HTTP_SCAN_LINK[] PROGMEM = R"(<br/><div class="c"><a href="/wifi">Scan</a></div>))";
+const char HTTP_FORM_PARAM[] PROGMEM = R"(<br/><input id='{i}' name='{n}' length={l} placeholder='{p}' value='{v}' {c}>)";
+const char HTTP_FORM_END[] PROGMEM = R"(<br/><button type='submit'>save</button></form>)";
+const char HTTP_SCAN_LINK[] PROGMEM = R"(<br/><div class="c"><a href="/wifi">Scan</a></div>)";
 const char HTTP_SAVED[] PROGMEM = R"(<div>Credentials Saved<br />Trying to connect ESP to network.<br />If it fails reconnect to AP to try again</div>)";
 const char HTTP_END[] PROGMEM = R"(</div></body></html>)";
 
 #define WIFI_MANAGER_MAX_PARAMS 10
+#define WIFI_MANAGER_MAX_RETRIES 30
 
-class AsyncWiFiManagerParameter {
+class CustomWiFiManagerParameter {
 public:
-    explicit AsyncWiFiManagerParameter(const char *custom);
+    explicit CustomWiFiManagerParameter(const char *custom);
 
-    AsyncWiFiManagerParameter(const char *id, const char *placeholder, const char *defaultValue, int length);
+    CustomWiFiManagerParameter(const char *id, const char *placeholder, const char *defaultValue, int length);
 
-    AsyncWiFiManagerParameter(const char *id, const char *placeholder, const char *defaultValue, int length, const char *custom);
+    CustomWiFiManagerParameter(const char *id, const char *placeholder, const char *defaultValue, int length, const char *custom);
 
     const char *getID();
 
@@ -85,7 +86,7 @@ private:
 
     void init(const char *id, const char *placeholder, const char *defaultValue, int length, const char *custom);
 
-    friend class AsyncWiFiManager;
+    friend class CustomWiFiManager;
 };
 
 
@@ -102,55 +103,37 @@ public:
     WiFiResult() {
     }
 
-
 };
 
-class AsyncWiFiManager {
+class CustomWiFiManager {
 public:
-    explicit AsyncWiFiManager(AsyncWebServer *server);
+    unsigned int retry = 0;
+
+    explicit CustomWiFiManager(AsyncWebServer *server);
 
     void scan();
 
-    void loop();
-
-    void criticalLoop();
-
-    String infoAsString();
-
-    boolean autoConnect(unsigned long maxConnectRetries = 1, unsigned long retryDelayMs = 1000);
-
-    boolean autoConnect(char const *apName, char const *apPassword = NULL, unsigned long maxConnectRetries = 1, unsigned long retryDelayMs = 1000);
+    static String infoAsString();
 
     //if you want to always start the config portal, without trying to connect first
-    void enableConfigPortal(char const *apName, char const *apPassword = NULL);
+    void enableConfigPortal(char const *apName, char const *apPassword = nullptr);
 
     bool configTask();
 
+    void connectTask();
+
     void scanNetworks();
 
-    // get the AP name of the config portal, so it can be used in the callback
-    String getConfigPortalSSID();
-
-    void resetSettings();
-
-    //sets timeout before webserver loop ends and exits even if there has been no setup.
-    //usefully for devices that failed to connect at some point and got stuck in a webserver loop
-    //in seconds setConfigPortalTimeout is a new name for setTimeout
-    void setConfigPortalTimeout(unsigned long seconds);
-
-    void setTimeout(unsigned long seconds);
-
-    //sets timeout for which to attempt connecting, usefull if you get a lot of failed connects
-    void setConnectTimeout(unsigned long seconds);
+    static void resetSettings();
 
     //defaults to not showing anything under 8% signal quality if called
     void setMinimumSignalQuality(int quality = 8);
 
     //called when settings have been changed and connection was successful
-    void setSaveConfigCallback(void (*func)(void));
+    void setSaveConfigCallback(void (*func)());
 
     //adds a custom parameter
-    void addParameter(AsyncWiFiManagerParameter *p);
+    void addParameter(CustomWiFiManagerParameter *p);
 
     //if this is set, customise style
     void setCustomHeadElement(const char *element);
@@ -161,37 +144,27 @@ public:
 private:
     AsyncWebServer *server;
 
-    boolean _modeless;
-    int scannow;
-    boolean needInfo = true;
-
     void setupConfigPortal();
 
-#ifdef NO_EXTRA_4K_HEAP
-    void          startWPS();
-#endif
-    String pager;
-    wl_status_t wifiStatus;
+    String infoPage = "";
+    wl_status_t wifiStatus = WL_NO_SHIELD;
     const char *_apName = "no-net";
     const char *_apPassword = nullptr;
+
     String _ssid = "";
     String _pass = "";
-    unsigned long _configPortalTimeout = 0;
-    unsigned long _connectTimeout = 0;
 
     int _paramsCount = 0;
     int _minimumQuality = -1;
-#ifdef NO_EXTRA_4K_HEAP
-    boolean       _tryWPS                 = false;
-#endif
+
     const char *_customHeadElement = "";
     const char *_customOptionsElement = "";
 
     int status = WL_IDLE_STATUS;
 
-    int connectWifi(String ssid, String pass);
+    int connectWifi(const String &ssid, const String &pass);
 
-    uint8_t waitForConnectResult();
+    static void disableWifi();
 
     void setInfo();
 
@@ -209,24 +182,25 @@ private:
 
     void handleNotFound(AsyncWebServerRequest *);
 
-    boolean captivePortal(AsyncWebServerRequest *);
+    static boolean captivePortal(AsyncWebServerRequest *);
 
     //helpers
-    int getRSSIasQuality(int RSSI);
 
-    boolean isIp(String str);
-
-    String toStringIp(IPAddress ip);
 
     boolean connect;
 
     WiFiResult *wifiSSIDs;
     wifi_ssid_count_t wifiSSIDCount;
-    boolean wifiSSIDscan;
 
     void (*_savecallback)() = nullptr;
 
-    AsyncWiFiManagerParameter *_params[WIFI_MANAGER_MAX_PARAMS];
+    CustomWiFiManagerParameter *_params[WIFI_MANAGER_MAX_PARAMS];
+
+    static int getRSSIasQuality(int RSSI);
+
+    static boolean isIp(const String &str);
+
+    static String toStringIp(const IPAddress &ip);
 };
 
 #endif

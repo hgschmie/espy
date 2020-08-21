@@ -65,7 +65,7 @@ void setup() {
         menuTask.enable();
 
         dns_setup(scheduler);
-        portal_setup(scheduler);
+        wifi_setup(scheduler);
 
         menu_buffer.leds[0] = led_state::FAST;
         display->display(&menu_buffer);

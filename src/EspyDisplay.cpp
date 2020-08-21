@@ -46,7 +46,7 @@ bool EspyDisplayBuffer::render_and_reset() {
 }
 
 EspyDisplay::EspyDisplay(EspyHardware &_hardware)
-        : hardware(_hardware), current(nullptr), led(0x00u),
+        : current(nullptr), hardware(_hardware), led(0x00u),
           fast(EspyBlinker(BLINK_FAST)), slow(EspyBlinker(BLINK_SLOW)) {
 }
 

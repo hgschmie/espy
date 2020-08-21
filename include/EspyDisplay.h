@@ -18,7 +18,7 @@ enum led_state {
     FAST
 };
 
-#define LED_TOGGLE(x, n) x.leds[n] =  (x.leds[n] == led_state::ON) ? led_state::OFF : led_state::ON
+#define LED_TOGGLE(x, n) (x)->leds[n] = ((x)->leds[n] == led_state::ON) ? led_state::OFF : led_state::ON
 
 #define REFRESH_RATE (1000 / 50)
 #define BLINK_SLOW (560 / REFRESH_RATE) // 2 second blink
@@ -60,9 +60,10 @@ public:
 
     void display(EspyDisplayBuffer *buf);
 
+    EspyDisplayBuffer *current;     // Current display buffer. Will be rendered at refresh
+
 private:
     EspyHardware &hardware;         // Reference to the detected hardware
-    EspyDisplayBuffer *current;     // Current display buffer. Will be rendered at refresh
     uint8_t led;                    // Current LED state.
     EspyBlinker fast;
     EspyBlinker slow;
