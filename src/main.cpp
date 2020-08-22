@@ -25,13 +25,14 @@ Task displayTask(20, TASK_FOREVER, &display_task);
 Task keyboardTask(KEY_TIMER_MS, TASK_FOREVER, &keyboard_task);
 Task menuTask(100, TASK_FOREVER, &menu_task);
 
-EspyDisplayBuffer buf;
+EspyDisplayBuffer buf("main");
 
 /*
  * Run all the setup code before the main loop hits.
  */
 void setup() {
 #ifdef _ESPY_DEBUG
+    delay(1000);
     Serial.begin(9600);
     Serial.println("Setup starting");
 #endif
@@ -69,14 +70,18 @@ void setup() {
         wifi_setup(scheduler);
 
         display->display(&menu_buffer);
+
+        menu_buffer.leds[0] = led_state::SLOW;
     }
 }
 
 boolean self_check(EspyDisplayBuffer *sc_buf) {
     if (hardware->error == HW_NO_DISPLAY_FOUND) {
         sc_buf->leds[0] = led_state::FAST;
+        Serial.println("No LCD found!");
     } else if (hardware->error == HW_NO_PCF_FOUND) {
         sc_buf->lcd_print_P(0, PSTR("NO PCF CHIP FOUND!"));
+        Serial.println("No PCF Chip found!");
     }
 
     return hardware->error == HW_NO_ERROR; // true if all is fine

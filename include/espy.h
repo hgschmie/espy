@@ -6,6 +6,8 @@
 #ifndef _ESPY_H_
 #define _ESPY_H_
 
+#undef _ESPY_DEBUG
+
 #include <TaskSchedulerDeclarations.h>
 
 #include <EspyHardware.h>
@@ -25,8 +27,6 @@ void display_task();
 // keyboard scan task
 void keyboard_task();
 
-// wifi setup
-void wifi_setup_activate(uint8_t param);
 
 // dns
 void dns_enable();
@@ -35,18 +35,18 @@ void dns_disable();
 
 void dns_setup(Scheduler &scheduler);
 
-// config portal
+// wifi config portal
 void wifi_setup(Scheduler &scheduler);
 
-void wifi_config_mode();
+void wifi_setup_activate(uint8_t param);
 
-void wifi_connect_mode();
+void wifi_reset(uint8_t param);
+
+// stuff
 
 extern EspyDisplayBuffer menu_buffer;
-
 extern EspyDisplay *display;
 extern LCDMenuLib2 LCDML;
-
 extern CustomWiFiManager *wifiManager;
 
 #endif // _ESPY_H_

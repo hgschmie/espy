@@ -6,7 +6,7 @@
 #include <ESP8266WiFi.h>
 #include <espy.h>
 
-EspyDisplayBuffer menu_buffer;
+EspyDisplayBuffer menu_buffer("menu");
 
 // housekeeping functions
 void lcdml_menu_display();
@@ -21,18 +21,6 @@ void lcdml_screensaver(uint8_t);
 bool always_false() {
     return false;
 }
-
-String param_name[7] =
-        {
-                "Wifi SSID",
-                "Retry Count",
-                "IP",
-                "Gateway",
-                "DNS",
-                "Hostname",
-                "LEDs"
-        };
-
 
 void settings(uint8_t);
 
@@ -50,17 +38,19 @@ LCDML_addAdvanced (5, LCDML_0_1_1, 4, NULL, "Gateway", settings, 3, _LCDML_TYPE_
 LCDML_addAdvanced (6, LCDML_0_1_1, 5, NULL, "DNS", settings, 4, _LCDML_TYPE_default);
 LCDML_addAdvanced (7, LCDML_0_1_1, 6, NULL, "Hostname", settings, 5, _LCDML_TYPE_default);
 LCDML_addAdvanced (8, LCDML_0_1_1, 7, NULL, "LEDs", settings, 6, _LCDML_TYPE_default);
-LCDML_add         (9, LCDML_0_1_1, 8, "< Back", lcdml_menu_back);
-LCDML_add         (10, LCDML_0_1, 2, "MQTT", nullptr);
-LCDML_add         (11, LCDML_0_1, 3, "< Back", lcdml_menu_back);
-LCDML_add         (12, LCDML_0, 2, "Settings", nullptr);
-// LCDML_add         (6, LCDML_0_2, 1, "Configure Wifi", wifi_setup_activate);
-LCDML_add         (13, LCDML_0_2, 2, "< Back", lcdml_menu_back);
-LCDML_addAdvanced (14, LCDML_0, 3, always_false, "screensaver", lcdml_screensaver, 0, _LCDML_TYPE_default);
+LCDML_addAdvanced (9, LCDML_0_1_1, 8, NULL, "BUF", settings, 7, _LCDML_TYPE_default);
+LCDML_add         (10, LCDML_0_1_1, 9, "< Back", lcdml_menu_back);
+LCDML_add         (11, LCDML_0_1, 2, "MQTT", nullptr);
+LCDML_add         (12, LCDML_0_1, 3, "< Back", lcdml_menu_back);
+LCDML_add         (13, LCDML_0, 2, "Settings", nullptr);
+LCDML_add         (14, LCDML_0_2, 1, "Configure Wifi", wifi_setup_activate);
+LCDML_add         (15, LCDML_0_2, 2, "Reset Wifi", wifi_reset);
+LCDML_add         (16, LCDML_0_2, 3, "< Back", lcdml_menu_back);
+LCDML_addAdvanced (17, LCDML_0, 3, always_false, "screensaver", lcdml_screensaver, 0, _LCDML_TYPE_default);
 
 // menu element count - last element id
 // this value must be the same as the last menu element
-#define _LCDML_DISP_cnt    14
+#define _LCDML_DISP_cnt    17
 
 // create menu
 LCDML_createMenu(_LCDML_DISP_cnt);
@@ -100,11 +90,11 @@ void settings(uint8_t param) {
                 menu_buffer.lcd_print(1, WiFi.SSID().c_str());
                 break;
             case 1:
-//                if (wifiManager != nullptr) {
-//                    menu_buffer.lcd_print_P(1, PSTR("Retry: %d"), wifiManager->connectionRetries);
-//                } else {
-                menu_buffer.lcd_print_P(1, PSTR("Retry unknown"));
-//                }
+                if (wifiManager != nullptr) {
+                    menu_buffer.lcd_print_P(1, PSTR("Retry: %d"), wifiManager->connectionRetries);
+                } else {
+                    menu_buffer.lcd_print_P(1, PSTR("Retry unknown"));
+                }
                 break;
             case 2:
                 menu_buffer.lcd_print(1, WiFi.localIP().toString().c_str());
@@ -119,7 +109,10 @@ void settings(uint8_t param) {
                 menu_buffer.lcd_print(1, WiFi.hostname().c_str());
                 break;
             case 6:
-                menu_buffer.lcd_print_P(1, PSTR("LED: %02x"), display->led);
+                menu_buffer.lcd_print_P(1, PSTR("%02x"), display->compute_led_state());
+                break;
+            case 7:
+                menu_buffer.lcd_print(1, display->current->name());
                 break;
             default:
                 menu_buffer.lcd_print_P(1, PSTR("unknown"));

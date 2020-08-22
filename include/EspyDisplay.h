@@ -30,10 +30,12 @@ class EspyDisplayBuffer {
     friend class EspyDisplay;
 
 public:
-    EspyDisplayBuffer();
+    EspyDisplayBuffer(const char *name);
 
     char text[DISPLAY_ROWS][DISPLAY_COLS + 1]{};
     led_state leds[5] = {OFF, OFF, OFF, OFF, OFF};
+
+    const char *name();
 
     void clear();
 
@@ -44,6 +46,8 @@ public:
     void request_render();
 
 private:
+    const char *_name;
+
     bool render_and_reset();
 
     bool render = false;
@@ -61,13 +65,13 @@ public:
     void display(EspyDisplayBuffer *buf);
 
     EspyDisplayBuffer *current;     // Current display buffer. Will be rendered at refresh
-    uint8_t led;                    // Current LED state.
+    uint8_t compute_led_state();
+
 private:
     EspyHardware &hardware;         // Reference to the detected hardware
     EspyBlinker fast;
     EspyBlinker slow;
 
-    void compute_led_state();
 };
 
 

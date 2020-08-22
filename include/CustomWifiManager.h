@@ -56,16 +56,20 @@ const char HTTP_SCAN_LINK[] PROGMEM = R"(<br/><div class="c"><a href="/wifi">Sca
 const char HTTP_SAVED[] PROGMEM = R"(<div>Credentials Saved<br />Trying to connect ESP to network.<br />If it fails reconnect to AP to try again</div>)";
 const char HTTP_END[] PROGMEM = R"(</div></body></html>)";
 
-#define WIFI_MANAGER_MAX_PARAMS 10
-#define WIFI_MANAGER_MAX_RETRIES 30
+// maximum number of parameters for the portal
+const uint8_t WIFI_MANAGER_MAX_CUSTOM_CONFIG_PARAMETERS = 10;
+
+// maximum number of loop retries for the regular connection task
+#define WIFI_MANAGER_MAX_RETRY_TIME_MS 30000
+#define WIFI_MANAGER_CONNECTION_TASK_TIME_MS 1000
+
+// maximum number of loop retries for the configuration task
+#define WIFI_MANAGER_MAX_CONFIG_RETRY_TIME_MS 30000
+#define WIFI_MANAGER_CONFIG_MENU_TASK_TIME_MS 100
 
 class CustomWiFiManagerParameter {
 public:
-    explicit CustomWiFiManagerParameter(const char *custom);
-
-    CustomWiFiManagerParameter(const char *id, const char *placeholder, const char *defaultValue, int length);
-
-    CustomWiFiManagerParameter(const char *id, const char *placeholder, const char *defaultValue, int length, const char *custom);
+    CustomWiFiManagerParameter(const char *id, const char *placeholder, const char *defaultValue, int length, const char *custom = "");
 
     const char *getID();
 
@@ -83,8 +87,6 @@ private:
     char *_value;
     int _length;
     const char *_customHTML;
-
-    void init(const char *id, const char *placeholder, const char *defaultValue, int length, const char *custom);
 
     friend class CustomWiFiManager;
 };
@@ -107,24 +109,30 @@ public:
 
 class CustomWiFiManager {
 public:
-    unsigned int retry = 0;
+    // visible for menu reporting
+    unsigned int connectionRetries = 0;
 
     explicit CustomWiFiManager(AsyncWebServer *server);
 
-    void scan();
-
-    static String infoAsString();
-
-    //if you want to always start the config portal, without trying to connect first
-    void enableConfigPortal(char const *apName, char const *apPassword = nullptr);
-
-    bool configTask();
-
+    // connect task. Drive from task scheduler in normal operation to ensure wifi
+    // connection.
     void connectTask();
 
-    void scanNetworks();
+    // config portal task. Drive from task scheduler in portal operation.
+    // returns true if connection was successful.
+    bool configPortalMenu();
 
-    static void resetSettings();
+    // config portal mode
+    void enableConfigPortal(char const *apName, char const *apPassword = nullptr);
+
+    // scan task to look for new networks. Must be driven from task scheduler during
+    // portal mode to look for new wifi networks
+    void scanNetworkTask();
+
+    //
+    // clear wifi settings (also from eeprom)
+    void resetSettings();
+
 
     //defaults to not showing anything under 8% signal quality if called
     void setMinimumSignalQuality(int quality = 8);
@@ -142,33 +150,41 @@ public:
     void setCustomOptionsElement(const char *element);
 
 private:
-    AsyncWebServer *server;
+    AsyncWebServer *_server;
 
-    void setupConfigPortal();
+    String _cache_infoPage = "";
+    wl_status_t _cache_wifiStatus = WL_NO_SHIELD;
 
-    String infoPage = "";
-    wl_status_t wifiStatus = WL_NO_SHIELD;
-    const char *_apName = "no-net";
-    const char *_apPassword = nullptr;
+    const char *_config_portal_ap_name = "no-net";
+    const char *_config_portal_ap_password = nullptr;
 
-    String _ssid = "";
-    String _pass = "";
+    // parameters returned from the config portal
+    // when the user selects a WiFi network
+    String _config_portal_ssid = "";
+    String _config_portal_password = "";
+    int _config_portal_connect_retries = -1;
 
-    int _paramsCount = 0;
-    int _minimumQuality = -1;
+    int _custom_current_param_index = 0;
+    CustomWiFiManagerParameter *_custom_config_parameters[WIFI_MANAGER_MAX_CUSTOM_CONFIG_PARAMETERS]{};
 
-    const char *_customHeadElement = "";
-    const char *_customOptionsElement = "";
+    int _config_minimum_quality = -1;
+    const char *_config_custom_html_head = "";
+    const char *_config_custom_html_options = "";
 
-    int status = WL_IDLE_STATUS;
+    wifi_ssid_count_t _config_portal_last_wifi_scan_count = 0;
+    WiFiResult *_config_portal_last_wifi_scan_networks = nullptr;
 
-    int connectWifi(const String &ssid, const String &pass);
+    void (*_config_portal_save_settings_callback)() = nullptr;
+
+    bool connectWifi(const String *ssid = nullptr, const String *pass = nullptr);
 
     static void disableWifi();
 
-    void setInfo();
+    void scan();
 
-    String networkListAsString();
+    void updateInfo();
+
+    // webserver stuff
 
     void handleRoot(AsyncWebServerRequest *);
 
@@ -184,17 +200,11 @@ private:
 
     static boolean captivePortal(AsyncWebServerRequest *);
 
+    static String infoAsHtml();
+
     //helpers
 
-
-    boolean connect;
-
-    WiFiResult *wifiSSIDs;
-    wifi_ssid_count_t wifiSSIDCount;
-
-    void (*_savecallback)() = nullptr;
-
-    CustomWiFiManagerParameter *_params[WIFI_MANAGER_MAX_PARAMS];
+    String networkListAsString();
 
     static int getRSSIasQuality(int RSSI);
 

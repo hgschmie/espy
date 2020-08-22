@@ -10,16 +10,14 @@
 
 AsyncWebServer server(80);
 
-EspyDisplayBuffer wifi_buf;
+EspyDisplayBuffer wifi_buf("wifi");
 CustomWiFiManager *wifiManager = nullptr;
 
 CustomWiFiManagerParameter mqtt_server("server", "mqtt server", "mqtt.intermeta.com", 40);
 
 void wifi_scan_task() {
     if (wifiManager != nullptr) {
-        wifi_buf.leds[0] = led_state::FAST;
-        wifiManager->scanNetworks();
-        wifi_buf.leds[0] = led_state::OFF;
+        wifiManager->scanNetworkTask();
     }
 }
 
@@ -43,7 +41,7 @@ void wifi_connect_task() {
 }
 
 Task wifiScanTask(10000, TASK_FOREVER, &wifi_scan_task);
-Task wifiConnectTask(1000, TASK_FOREVER, &wifi_connect_task);
+Task wifiConnectTask(WIFI_MANAGER_CONNECTION_TASK_TIME_MS, TASK_FOREVER, &wifi_connect_task);
 
 void wifi_setup(Scheduler &scheduler) {
     scheduler.addTask(wifiScanTask);
@@ -56,7 +54,7 @@ void wifi_setup(Scheduler &scheduler) {
 }
 
 void wifi_config_mode() {
-    CustomWiFiManager::resetSettings();
+    wifiManager->resetSettings();
 
     server.reset();
     wifiManager->enableConfigPortal("NuclearDevice");
@@ -77,9 +75,9 @@ void wifi_connect_mode() {
 void wifi_setup_activate(uint8_t param) {
     if (LCDML.FUNC_setup()) {
         display->display(&wifi_buf);
-        wifi_buf.leds[3] = led_state::ON;
+        wifi_buf.leds[4] = led_state::ON;
 
-        LCDML.FUNC_setLoopInterval(100);
+        LCDML.FUNC_setLoopInterval(WIFI_MANAGER_CONFIG_MENU_TASK_TIME_MS);
 
         wifi_config_mode();
 
@@ -94,7 +92,7 @@ void wifi_setup_activate(uint8_t param) {
         // can't have screen blanker here.
         LCDML.SCREEN_resetTimer();
 
-        if (wifiManager->configTask()) {
+        if (wifiManager->configPortalMenu()) {
             LCDML.FUNC_goBackToMenu();
         }
 
@@ -104,6 +102,40 @@ void wifi_setup_activate(uint8_t param) {
 
         wifi_connect_mode();
         // restore the menu buffer for display
+        display->display(&menu_buffer);
+    }
+}
+
+int countdown, it;
+
+void wifi_reset(uint8_t param) {
+    if (LCDML.FUNC_setup()) {
+        countdown = 6;
+        it = 1000 / WIFI_MANAGER_CONFIG_MENU_TASK_TIME_MS;
+        display->display(&wifi_buf);
+        wifi_buf.lcd_print_P(0, PSTR("WIFI RESET!"));
+
+        LCDML.FUNC_setLoopInterval(WIFI_MANAGER_CONFIG_MENU_TASK_TIME_MS);
+    }
+
+    if (LCDML.FUNC_loop()) {
+        if (LCDML.BT_checkAny()) {
+            LCDML.FUNC_goBackToMenu();
+        }
+
+        if (--it == 0) {
+            it = 1000 / WIFI_MANAGER_CONFIG_MENU_TASK_TIME_MS;
+            if (--countdown < 0) {
+                wifi_buf.lcd_print_P(1, PSTR("Resetting"));
+                wifiManager->resetSettings();
+                LCDML.FUNC_goBackToMenu();
+            } else {
+                wifi_buf.lcd_print_P(1, PSTR("%d..."), countdown);
+            }
+        }
+    }
+
+    if (LCDML.FUNC_close()) {
         display->display(&menu_buffer);
     }
 }
