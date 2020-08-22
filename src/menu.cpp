@@ -34,46 +34,8 @@ String param_name[7] =
         };
 
 
-void settings(uint8_t param) {
-    if (LCDML.FUNC_setup()) {
-        menu_buffer.lcd_print(0, param_name[param].c_str());
-        LCDML.FUNC_setLoopInterval(100);
-        LCDML.MENU_enScroll();
-    }
+void settings(uint8_t);
 
-    if (LCDML.FUNC_loop()) {
-        switch (param) {
-            case 0:
-                menu_buffer.lcd_print(1, WiFi.SSID().c_str());
-                break;
-            case 1:
-                if (wifiManager != nullptr) {
-                    menu_buffer.lcd_print_P(1, PSTR("Retry: %d"), wifiManager->retry);
-                } else {
-                    menu_buffer.lcd_print_P(1, PSTR("Retry unknown"));
-                }
-                break;
-            case 2:
-                menu_buffer.lcd_print(1, WiFi.localIP().toString().c_str());
-                break;
-            case 3:
-                menu_buffer.lcd_print(1, WiFi.gatewayIP().toString().c_str());
-                break;
-            case 4:
-                menu_buffer.lcd_print(1, WiFi.dnsIP().toString().c_str());
-                break;
-            case 5:
-                menu_buffer.lcd_print(1, WiFi.hostname().c_str());
-                break;
-            case 6:
-                menu_buffer.lcd_print_P(1, PSTR("LED: %02x"), display->led);
-                break;
-            default:
-                menu_buffer.lcd_print_P(1, PSTR("unknown"));
-                break;
-        }
-    }
-}
 
 LCDMenuLib2_menu LCDML_0(255, 0, 0, nullptr, nullptr); // root menu element (do not change)
 // no menuControl callback, as the buttons are actively managed by the EspyKey controller.
@@ -81,24 +43,24 @@ LCDMenuLib2 LCDML(LCDML_0, DISPLAY_ROWS, DISPLAY_COLS, lcdml_menu_display, lcdml
 // LCDML_add(id, prev_layer, new_num, lang_char_array, callback_function)
 LCDML_add         (0, LCDML_0, 1, "Status", nullptr);
 LCDML_add         (1, LCDML_0_1, 1, "WiFi", nullptr);
-LCDML_addAdvanced (2, LCDML_0_1_1, 1, NULL, *param_name[0].c_str(), settings, 0, _LCDML_TYPE_default);
-LCDML_addAdvanced (3, LCDML_0_1_1, 2, NULL, *param_name[1].c_str(), settings, 1, _LCDML_TYPE_default);
-LCDML_addAdvanced (4, LCDML_0_1_1, 3, NULL, *param_name[2].c_str(), settings, 2, _LCDML_TYPE_default);
-LCDML_addAdvanced (5, LCDML_0_1_1, 4, NULL, *param_name[3].c_str(), settings, 3, _LCDML_TYPE_default);
-LCDML_addAdvanced (6, LCDML_0_1_1, 5, NULL, *param_name[4].c_str(), settings, 4, _LCDML_TYPE_default);
-LCDML_addAdvanced (7, LCDML_0_1_1, 6, NULL, *param_name[5].c_str(), settings, 5, _LCDML_TYPE_default);
-LCDML_addAdvanced (8, LCDML_0_1_1, 7, NULL, *param_name[6].c_str(), settings, 6, _LCDML_TYPE_default);
+LCDML_addAdvanced (2, LCDML_0_1_1, 1, NULL, "Wifi SSID", settings, 0, _LCDML_TYPE_default);
+LCDML_addAdvanced (3, LCDML_0_1_1, 2, NULL, "Retry Count", settings, 1, _LCDML_TYPE_default);
+LCDML_addAdvanced (4, LCDML_0_1_1, 3, NULL, "IP", settings, 2, _LCDML_TYPE_default);
+LCDML_addAdvanced (5, LCDML_0_1_1, 4, NULL, "Gateway", settings, 3, _LCDML_TYPE_default);
+LCDML_addAdvanced (6, LCDML_0_1_1, 5, NULL, "DNS", settings, 4, _LCDML_TYPE_default);
+LCDML_addAdvanced (7, LCDML_0_1_1, 6, NULL, "Hostname", settings, 5, _LCDML_TYPE_default);
+LCDML_addAdvanced (8, LCDML_0_1_1, 7, NULL, "LEDs", settings, 6, _LCDML_TYPE_default);
 LCDML_add         (9, LCDML_0_1_1, 8, "< Back", lcdml_menu_back);
 LCDML_add         (10, LCDML_0_1, 2, "MQTT", nullptr);
 LCDML_add         (11, LCDML_0_1, 3, "< Back", lcdml_menu_back);
 LCDML_add         (12, LCDML_0, 2, "Settings", nullptr);
-LCDML_add         (13, LCDML_0_2, 1, "Configure Wifi", wifi_setup_activate);
-LCDML_add         (14, LCDML_0_2, 2, "< Back", lcdml_menu_back);
-LCDML_addAdvanced (15, LCDML_0, 3, always_false, "screensaver", lcdml_screensaver, 0, _LCDML_TYPE_default);
+// LCDML_add         (6, LCDML_0_2, 1, "Configure Wifi", wifi_setup_activate);
+LCDML_add         (13, LCDML_0_2, 2, "< Back", lcdml_menu_back);
+LCDML_addAdvanced (14, LCDML_0, 3, always_false, "screensaver", lcdml_screensaver, 0, _LCDML_TYPE_default);
 
 // menu element count - last element id
 // this value must be the same as the last menu element
-#define _LCDML_DISP_cnt    15
+#define _LCDML_DISP_cnt    14
 
 // create menu
 LCDML_createMenu(_LCDML_DISP_cnt);
@@ -126,6 +88,53 @@ void func_left() {
 void func_right() {
     LCDML.BT_right();
 }
+
+void settings(uint8_t param) {
+    if (LCDML.FUNC_setup()) {
+        // resolve some of the menu macro magic to end up with this line
+        LCDMenuLib2_menu *current = LCDML.MENU_getCurrentObj()->getChild(param);
+        menu_buffer.lcd_print(0, g_LCDML_DISP_lang_lcdml_table[current->getID()]);
+
+        switch (param) {
+            case 0:
+                menu_buffer.lcd_print(1, WiFi.SSID().c_str());
+                break;
+            case 1:
+//                if (wifiManager != nullptr) {
+//                    menu_buffer.lcd_print_P(1, PSTR("Retry: %d"), wifiManager->connectionRetries);
+//                } else {
+                menu_buffer.lcd_print_P(1, PSTR("Retry unknown"));
+//                }
+                break;
+            case 2:
+                menu_buffer.lcd_print(1, WiFi.localIP().toString().c_str());
+                break;
+            case 3:
+                menu_buffer.lcd_print(1, WiFi.gatewayIP().toString().c_str());
+                break;
+            case 4:
+                menu_buffer.lcd_print(1, WiFi.dnsIP().toString().c_str());
+                break;
+            case 5:
+                menu_buffer.lcd_print(1, WiFi.hostname().c_str());
+                break;
+            case 6:
+                menu_buffer.lcd_print_P(1, PSTR("LED: %02x"), display->led);
+                break;
+            default:
+                menu_buffer.lcd_print_P(1, PSTR("unknown"));
+                break;
+        }
+        LCDML.FUNC_setLoopInterval(100);
+    }
+
+    if (LCDML.FUNC_loop()) {
+        if (LCDML.BT_checkAny()) {
+            LCDML.FUNC_goBackToMenu();
+        }
+    }
+}
+
 
 //
 // initialize the menu structure.
@@ -174,8 +183,6 @@ void lcdml_menu_display() {
 
         // declaration of some variables
         // ***************
-        // content variable
-        char content_text[DISPLAY_COLS];  // save the content text of every menu element
         // menu element object
         LCDMenuLib2_menu *tmp;
         // some limit values
@@ -191,9 +198,8 @@ void lcdml_menu_display() {
                 if (tmp->checkCondition()) {
                     // check the type off a menu element
                     if (tmp->checkType_menu() == true) {
-                        // display normal content
-                        LCDML_getContent(content_text, tmp->getID())
-                        menu_buffer.lcd_print_P(n, PSTR(" %s"), content_text);
+                        // resolve some of the menu macro magic to end up with this line
+                        menu_buffer.lcd_print_P(n, " %s", g_LCDML_DISP_lang_lcdml_table[tmp->getID()]);
                     } else {
                         if (tmp->checkType_dynParam()) {
                             tmp->callback(n);
