@@ -9,11 +9,10 @@
 #include <LCDMenuLib2.h>
 
 // Call from setup function to initialize menu
-EspyDisplayBuffer *menu_setup(EspyKeys *);
+void menu_setup();
 
 // call from scheduler task to update menu
 void menu_task();
-
 
 
 #endif

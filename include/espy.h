@@ -46,6 +46,7 @@ void wifi_reset(uint8_t param);
 
 extern EspyDisplayBuffer menu_buffer;
 extern EspyDisplay *display;
+extern EspyKeys *keys;
 extern LCDMenuLib2 LCDML;
 extern CustomWiFiManager *wifiManager;
 

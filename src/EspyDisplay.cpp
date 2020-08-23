@@ -4,6 +4,8 @@
 
 #include <espy.h>
 
+const char *LED_state_names[] = {".", "O", "I", "S", "F"};
+
 EspyDisplayBuffer::EspyDisplayBuffer(const char *name)
         : _name(name) {
     clear();
@@ -14,9 +16,9 @@ const char *EspyDisplayBuffer::name() {
 }
 
 void EspyDisplayBuffer::clear() {
-    for (int i = 0; i < DISPLAY_ROWS; i++) {
-        memset(text[i], DISPLAY_COLS, ' ');
-        text[i][DISPLAY_COLS] = '\0';
+    for (auto &i : text) {
+        memset(i, ' ', DISPLAY_COLS);
+        i[DISPLAY_COLS] = '\0';
     }
 
     request_render();
@@ -55,21 +57,11 @@ EspyDisplay::EspyDisplay(EspyHardware &_hardware)
           fast(EspyBlinker(BLINK_FAST)), slow(EspyBlinker(BLINK_SLOW)) {
 }
 
-#ifdef _ESPY_DEBUG_BUFFERS
-char *_espy_debug_buf[2] = { new char(17), new char(17) };
-#endif
-
 void EspyDisplay::refresh() {
-    uint8_t led = 0x00u;
+    fast.blink();
+    slow.blink();
+
     if (current != nullptr) {
-        led = compute_led_state();
-
-#ifdef _ESPY_DEBUG_BUFFERS
-        snprintf(_espy_debug_buf[0], 16, "%s", current->name());
-        snprintf(_espy_debug_buf[1], 16, "%02x", led);
-        hardware.text((const char **)_espy_debug_buf);
-#endif
-
         if (current->render_and_reset()) {
             const char *buf[DISPLAY_ROWS];
             for (int i = 0; i < DISPLAY_ROWS; i++) {
@@ -77,31 +69,29 @@ void EspyDisplay::refresh() {
             }
             hardware.text(buf);
         }
+
+        // LEDs must not be controlled by the "render and reset" flag, as
+        // they need to be contiuously rendered (otherwise they won't blink)
+        hardware.leds(compute_led_state());
     }
-    hardware.leds(led);
 }
 
-uint8_t EspyDisplay::compute_led_state() {
+uint8_t EspyDisplay::compute_led_state() const {
 
-    fast.blink();
-    slow.blink();
+    uint8_t led = 0x1fu;
+    for (unsigned int i = 0; i < 5; i++) {
 
-    uint8_t led = 0x00u;
-    if (current != nullptr) {
-        for (unsigned int i = 0; i < 5; i++) {
+        led_state state = current->leds[i];
+        if (state == SLOW) {
+            state = slow.state ? led_state::ON : led_state::OFF;
+        } else if (state == FAST) {
+            state = fast.state ? led_state::ON : led_state::OFF;
+        }
 
-            led_state state = current->leds[i];
-            if (state == SLOW) {
-                state = slow.state ? led_state::ON : led_state::OFF;
-            } else if (state == FAST) {
-                state = fast.state ? led_state::ON : led_state::OFF;
-            }
-
-            if (state == ON) {
-                led |= bit(i);
-            } else if (state == OFF) {
-                led &= ~bit(i);
-            }
+        if (state == ON) {
+            led |= bit(i);
+        } else if (state == OFF) {
+            led &= ~bit(i);
         }
     }
     return led;

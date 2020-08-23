@@ -11,14 +11,18 @@
 #include <espy.h>
 
 enum led_state {
-    ON,
-    OFF,
-    IGNORE,
-    SLOW,
-    FAST
+    OFF = 0,
+    ON = 1,
+    IGNORE = 2,
+    SLOW = 3,
+    FAST = 4
 };
 
 #define LED_TOGGLE(x, n) (x)->leds[n] = ((x)->leds[n] == led_state::ON) ? led_state::OFF : led_state::ON
+
+extern const char *LED_state_names[];
+
+#define LED_STATE(x, n) LED_state_names[(int)((x)->leds[n])]
 
 #define REFRESH_RATE (1000 / 50)
 #define BLINK_SLOW (560 / REFRESH_RATE) // 2 second blink
@@ -30,10 +34,11 @@ class EspyDisplayBuffer {
     friend class EspyDisplay;
 
 public:
-    EspyDisplayBuffer(const char *name);
 
-    char text[DISPLAY_ROWS][DISPLAY_COLS + 1]{};
+    explicit EspyDisplayBuffer(const char *name);
+
     led_state leds[5] = {OFF, OFF, OFF, OFF, OFF};
+    char text[DISPLAY_ROWS][DISPLAY_COLS + 1]{};
 
     const char *name();
 
@@ -47,10 +52,9 @@ public:
 
 private:
     const char *_name;
+    bool render = false;
 
     bool render_and_reset();
-
-    bool render = false;
 };
 
 /*
@@ -58,20 +62,20 @@ private:
  */
 class EspyDisplay {
 public:
+    EspyDisplayBuffer *current;     // Current display buffer. Will be rendered at refresh
+
     explicit EspyDisplay(EspyHardware &_hardware);
 
     void refresh();
 
     void display(EspyDisplayBuffer *buf);
 
-    EspyDisplayBuffer *current;     // Current display buffer. Will be rendered at refresh
-    uint8_t compute_led_state();
-
 private:
     EspyHardware &hardware;         // Reference to the detected hardware
     EspyBlinker fast;
     EspyBlinker slow;
 
+    uint8_t compute_led_state() const;
 };
 
 

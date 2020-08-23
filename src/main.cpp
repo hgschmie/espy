@@ -63,15 +63,15 @@ void setup() {
     if (self_check(&buf)) {
         // enable other tasks here
 
-        menu_setup(keys);
+        menu_setup();
         menuTask.enable();
 
         dns_setup(scheduler);
         wifi_setup(scheduler);
 
-        display->display(&menu_buffer);
-
+        // LED 0 is heartbeat when the menu is shown.
         menu_buffer.leds[0] = led_state::SLOW;
+        display->display(&menu_buffer);
     }
 }
 
@@ -99,5 +99,3 @@ void keyboard_task() {
 void loop() {
     scheduler.execute();
 }
-
-

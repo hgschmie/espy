@@ -16,26 +16,30 @@ CustomWiFiManager *wifiManager = nullptr;
 CustomWiFiManagerParameter mqtt_server("server", "mqtt server", "mqtt.intermeta.com", 40);
 
 void wifi_scan_task() {
+    wifi_buf.leds[0] = led_state::ON;
+    display->refresh(); // needs a refresh as the scan is blocking
+
     if (wifiManager != nullptr) {
         wifiManager->scanNetworkTask();
     }
+
+    wifi_buf.leds[0] = led_state::OFF;
+    display->refresh(); // needs a refresh as the scan is blocking
 }
 
+//
+// LED 2 flashes while connecting, LED 3 turns on when connected
+//
 void wifi_connect_task() {
-    EspyDisplayBuffer *current_buffer = display->current;
-
     if (wifiManager != nullptr) {
         wifiManager->connectTask();
+
         if (WiFi.status() == WL_CONNECTED) {
-            if (current_buffer != nullptr) {
-                current_buffer->leds[1] = led_state::OFF;
-                current_buffer->leds[2] = led_state::ON;
-                current_buffer->request_render();
-            }
+            menu_buffer.leds[2] = led_state::OFF;
+            menu_buffer.leds[3] = led_state::ON;
         } else {
-            if (current_buffer != nullptr) {
-                LED_TOGGLE(current_buffer, 1);
-            }
+            menu_buffer.leds[3] = led_state::OFF;
+            LED_TOGGLE(&menu_buffer, 2);
         }
     }
 }

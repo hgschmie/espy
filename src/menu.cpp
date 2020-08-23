@@ -24,7 +24,6 @@ bool always_false() {
 
 void settings(uint8_t);
 
-
 LCDMenuLib2_menu LCDML_0(255, 0, 0, nullptr, nullptr); // root menu element (do not change)
 // no menuControl callback, as the buttons are actively managed by the EspyKey controller.
 LCDMenuLib2 LCDML(LCDML_0, DISPLAY_ROWS, DISPLAY_COLS, lcdml_menu_display, lcdml_menu_clear, nullptr);
@@ -37,20 +36,22 @@ LCDML_addAdvanced (4, LCDML_0_1_1, 3, NULL, "IP", settings, 2, _LCDML_TYPE_defau
 LCDML_addAdvanced (5, LCDML_0_1_1, 4, NULL, "Gateway", settings, 3, _LCDML_TYPE_default);
 LCDML_addAdvanced (6, LCDML_0_1_1, 5, NULL, "DNS", settings, 4, _LCDML_TYPE_default);
 LCDML_addAdvanced (7, LCDML_0_1_1, 6, NULL, "Hostname", settings, 5, _LCDML_TYPE_default);
-LCDML_addAdvanced (8, LCDML_0_1_1, 7, NULL, "LEDs", settings, 6, _LCDML_TYPE_default);
-LCDML_addAdvanced (9, LCDML_0_1_1, 8, NULL, "BUF", settings, 7, _LCDML_TYPE_default);
-LCDML_add         (10, LCDML_0_1_1, 9, "< Back", lcdml_menu_back);
-LCDML_add         (11, LCDML_0_1, 2, "MQTT", nullptr);
-LCDML_add         (12, LCDML_0_1, 3, "< Back", lcdml_menu_back);
-LCDML_add         (13, LCDML_0, 2, "Settings", nullptr);
-LCDML_add         (14, LCDML_0_2, 1, "Configure Wifi", wifi_setup_activate);
-LCDML_add         (15, LCDML_0_2, 2, "Reset Wifi", wifi_reset);
-LCDML_add         (16, LCDML_0_2, 3, "< Back", lcdml_menu_back);
-LCDML_addAdvanced (17, LCDML_0, 3, always_false, "screensaver", lcdml_screensaver, 0, _LCDML_TYPE_default);
+LCDML_add         (8, LCDML_0_1_1, 7, "< Back", lcdml_menu_back);
+LCDML_add         (9, LCDML_0_1, 2, "System", nullptr);
+LCDML_addAdvanced (10, LCDML_0_1_2, 1, NULL, "LEDs", settings, 100, _LCDML_TYPE_default); // 100 == position 0 (see settings method)
+LCDML_add         (11, LCDML_0_1_2, 2, "< Back", lcdml_menu_back);
+LCDML_add         (12, LCDML_0_1, 3, "MQTT", nullptr);
+LCDML_add         (13, LCDML_0_1_3, 1, "< Back", lcdml_menu_back);
+LCDML_add         (14, LCDML_0_1, 4, "< Back", lcdml_menu_back);
+LCDML_add         (15, LCDML_0, 2, "Settings", nullptr);
+LCDML_add         (16, LCDML_0_2, 1, "Configure Wifi", wifi_setup_activate);
+LCDML_add         (17, LCDML_0_2, 2, "Reset Wifi", wifi_reset);
+LCDML_add         (18, LCDML_0_2, 3, "< Back", lcdml_menu_back);
+LCDML_addAdvanced (19, LCDML_0, 3, always_false, "screensaver", lcdml_screensaver, 0, _LCDML_TYPE_default);
 
 // menu element count - last element id
 // this value must be the same as the last menu element
-#define _LCDML_DISP_cnt    17
+#define _LCDML_DISP_cnt 19
 
 // create menu
 LCDML_createMenu(_LCDML_DISP_cnt);
@@ -80,12 +81,16 @@ void func_right() {
 }
 
 void settings(uint8_t param) {
+    // offset for param (0...) after % must match child order to find the right text
     if (LCDML.FUNC_setup()) {
         // resolve some of the menu macro magic to end up with this line
-        LCDMenuLib2_menu *current = LCDML.MENU_getCurrentObj()->getChild(param);
-        menu_buffer.lcd_print(0, g_LCDML_DISP_lang_lcdml_table[current->getID()]);
+        uint8_t menu_pos = param % 100; // 0-99 = wifi, 100-199 = system.
+        LCDMenuLib2_menu *current_menu = LCDML.MENU_getCurrentObj()->getChild(menu_pos);
+        menu_buffer.lcd_print(0, g_LCDML_DISP_lang_lcdml_table[current_menu->getID()]);
 
         switch (param) {
+
+            // WIFI Settings
             case 0:
                 menu_buffer.lcd_print(1, WiFi.SSID().c_str());
                 break;
@@ -108,11 +113,11 @@ void settings(uint8_t param) {
             case 5:
                 menu_buffer.lcd_print(1, WiFi.hostname().c_str());
                 break;
-            case 6:
-                menu_buffer.lcd_print_P(1, PSTR("%02x"), display->compute_led_state());
-                break;
-            case 7:
-                menu_buffer.lcd_print(1, display->current->name());
+
+                // System Settings
+            case 100:
+                menu_buffer.lcd_print_P(1, PSTR("%s %s %s %s %s"), LED_STATE(&menu_buffer, 0), LED_STATE(&menu_buffer, 1),
+                                        LED_STATE(&menu_buffer, 2), LED_STATE(&menu_buffer, 3), LED_STATE(&menu_buffer, 4));
                 break;
             default:
                 menu_buffer.lcd_print_P(1, PSTR("unknown"));
@@ -132,7 +137,7 @@ void settings(uint8_t param) {
 //
 // initialize the menu structure.
 //
-EspyDisplayBuffer *menu_setup(EspyKeys *keys) {
+void menu_setup() {
     // --- TEST ---
     // LCDMenuLib Setup
     LCDML_setup(_LCDML_DISP_cnt);
@@ -151,10 +156,6 @@ EspyDisplayBuffer *menu_setup(EspyKeys *keys) {
     keys->keys[1].on_long_press = func_right;
     keys->keys[2].on_release = func_enter;
     keys->keys[2].on_long_press = func_quit;
-
-    // --- TEST ---
-
-    return &menu_buffer;
 }
 
 //
